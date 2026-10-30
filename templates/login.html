@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Biometric Face Authentication{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-9">
+
+      <!-- Header -->
+      <div class="text-center mb-4">
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2 border border-primary border-opacity-25" style="background: rgba(99, 102, 241, 0.08);">
+          <i class="fa-solid fa-fingerprint text-primary"></i>
+          <span class="text-primary font-mono small fw-semibold">FACIAL RECOGNITION LOGIN</span>
+        </div>
+        <h2 class="fw-bold text-light">Authenticate Identity</h2>
+        <p class="text-secondary">Position your face in front of the camera for neural biometric verification</p>
+      </div>
+
+      <div class="glass-card p-4">
+        <div class="row g-4 align-items-center">
+
+          <!-- Left: Camera Viewport with HUD -->
+          <div class="col-lg-7">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="cyber-badge cyber-badge-neutral" id="auth-status-badge">
+                <span class="pulse-dot pulse-dot-yellow" id="auth-dot"></span> Camera Initializing
+              </span>
+              <span class="font-mono small text-info">SFace Cosine Metric</span>
+            </div>
+
+            <div class="webcam-viewport" id="auth-camera-viewport">
+              <video id="auth-webcam" playsinline autoplay muted></video>
+              <canvas id="auth-overlay-canvas"></canvas>
+
+              <!-- HUD Reticle Corners -->
+              <div class="hud-corner hud-top-left"></div>
+              <div class="hud-corner hud-top-right"></div>
+              <div class="hud-corner hud-bottom-left"></div>
+              <div class="hud-corner hud-bottom-right"></div>
+
+              <!-- Scanner Laser -->
+              <div class="scanner-laser"></div>
+            </div>
+
+            <div class="mt-3 text-center">
+              <div class="font-mono small text-muted" id="auth-instruction">
+                <i class="fa-solid fa-crosshairs text-info me-1"></i> Center face in the frame and click <strong>Verify Identity</strong>.
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Verification Controls & Metrics -->
+          <div class="col-lg-5">
+            <div class="p-3 rounded-3" style="background: rgba(10, 17, 34, 0.7); border: 1px solid rgba(56, 189, 248, 0.15);">
+              
+              <h5 class="fw-bold text-light mb-3">Verification Target</h5>
+
+              <!-- Multi-User Target Selector -->
+              <div class="mb-3">
+                <label class="form-label small text-muted font-mono">TARGET IDENTITY</label>
+                <select class="form-select font-mono small" id="auth-target-user">
+                  <option value="" selected>Auto 1:N Scan (Match Any Enrolled User)</option>
+                  {% for u in users %}
+                    <option value="{{ u.username }}">{{ u.full_name }} (@{{ u.username }})</option>
+                  {% endfor %}
+                </select>
+                <div class="form-text text-muted small">
+                  Supports 1:N automatic identification or 1:1 direct template verification.
+                </div>
+              </div>
+
+              <!-- Similarity Score Gauge -->
+              <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="font-mono small text-muted">COSINE SIMILARITY</span>
+                  <span class="font-mono fw-bold text-info" id="sim-score-text">0.000</span>
+                </div>
+                <div class="progress" style="height: 10px; background: rgba(255,255,255,0.08);">
+                  <div class="progress-bar bg-info" id="sim-progress-bar" role="progressbar" style="width: 0%;"></div>
+                </div>
+                <div class="d-flex justify-content-between font-mono small text-muted mt-1" style="font-size: 0.75rem;">
+                  <span>0.00</span>
+                  <span class="text-warning">Threshold: {{ threshold }}</span>
+                  <span>1.00</span>
+                </div>
+              </div>
+
+              <!-- Dynamic Alert Message -->
+              <div id="auth-alert-box"></div>
+
+              <!-- Authenticate Action Button -->
+              <button type="button" class="btn btn-cyber-primary w-100 py-3 mb-2" id="btn-authenticate">
+                <i class="fa-solid fa-expand"></i> Verify Identity
+              </button>
+
+              <div class="text-center mt-2">
+                <span class="text-muted small">Need an account?</span>
+                <a href="{{ url_for('register_page') }}" class="text-info small fw-bold ms-1 text-decoration-none">
+                  Enroll Face &rarr;
+                </a>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const statusBadge = document.getElementById("auth-status-badge");
+  const instruction = document.getElementById("auth-instruction");
+  const btnAuth = document.getElementById("btn-authenticate");
+  const targetUserSelect = document.getElementById("auth-target-user");
+  const simScoreText = document.getElementById("sim-score-text");
+  const simProgressBar = document.getElementById("sim-progress-bar");
+  const alertBox = document.getElementById("auth-alert-box");
+
+  const camera = new BiometricCamera("auth-webcam", "auth-overlay-canvas", {
+    onReady: () => {
+      statusBadge.innerHTML = '<span class="pulse-dot pulse-dot-green"></span> Sensor Online';
+      statusBadge.className = 'cyber-badge cyber-badge-success';
+    },
+    onError: (err) => {
+      statusBadge.innerHTML = '<span class="pulse-dot pulse-dot-red"></span> Sensor Offline';
+      statusBadge.className = 'cyber-badge cyber-badge-danger';
+      instruction.innerHTML = `<span class="text-danger">${err}</span>`;
+    }
+  });
+
+  camera.start();
+
+  btnAuth.addEventListener("click", async () => {
+    if (!camera.isStreaming) {
+      alertBox.innerHTML = '<div class="alert alert-warning p-2 small font-mono">Camera stream not available.</div>';
+      return;
+    }
+
+    const imageBase64 = camera.captureBase64(0.88);
+    if (!imageBase64) return;
+
+    const targetUsername = targetUserSelect.value;
+
+    btnAuth.disabled = true;
+    btnAuth.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Matching SFace Embedding...';
+    instruction.innerHTML = '<i class="fa-solid fa-microchip fa-spin text-info me-1"></i> Running neural cosine comparison...';
+
+    try {
+      const response = await fetch("/api/authenticate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: imageBase64,
+          username: targetUsername
+        })
+      });
+
+      const data = await response.json();
+
+      const sim = data.similarity || 0.0;
+      simScoreText.textContent = sim.toFixed(3);
+      simProgressBar.style.width = `${Math.min(Math.max(sim * 100, 0), 100)}%`;
+
+      if (data.success && data.status === "AUTHENTICATED") {
+        camera.playChime('success');
+        simProgressBar.className = "progress-bar bg-success";
+        
+        statusBadge.innerHTML = '<span class="pulse-dot pulse-dot-green"></span> IDENTITY CONFIRMED';
+        statusBadge.className = 'cyber-badge cyber-badge-success';
+
+        if (data.box) {
+          const name = data.user ? data.user.full_name : 'AUTHENTICATED';
+          camera.drawBoundingBox(data.box, 'AUTHENTICATED', `${name} (${sim.toFixed(3)})`);
+        }
+
+        alertBox.innerHTML = `
+          <div class="alert alert-success p-2 small font-mono mb-2">
+            <i class="fa-solid fa-circle-check me-1"></i> Verified! Welcome, <strong>${data.user.full_name}</strong>. Access granted.
+          </div>
+        `;
+
+        instruction.innerHTML = '<span class="text-success fw-bold">Redirecting to Secure Dashboard...</span>';
+
+        setTimeout(() => {
+          window.location.href = data.redirect_url || "{{ url_for('dashboard_page') }}";
+        }, 1200);
+
+      } else {
+        camera.playChime('warning');
+        simProgressBar.className = "progress-bar bg-danger";
+
+        statusBadge.innerHTML = '<span class="pulse-dot pulse-dot-red"></span> ' + (data.status || 'UNAUTHORIZED');
+        statusBadge.className = 'cyber-badge cyber-badge-danger';
+
+        if (data.box) {
+          camera.drawBoundingBox(data.box, 'UNAUTHORIZED', `MISMATCH (${sim.toFixed(3)})`);
+        } else {
+          camera.clearOverlay();
+        }
+
+        alertBox.innerHTML = `
+          <div class="alert alert-danger p-2 small font-mono mb-2">
+            <i class="fa-solid fa-triangle-exclamation me-1"></i> ${data.message || 'Authentication failed. Please try again.'}
+          </div>
+        `;
+
+        instruction.innerHTML = '<span class="text-danger">Biometric verification failed. Adjust lighting or retry.</span>';
+        btnAuth.disabled = false;
+        btnAuth.innerHTML = '<i class="fa-solid fa-expand"></i> Verify Identity';
+      }
+
+    } catch (err) {
+      console.error("Auth error:", err);
+      alertBox.innerHTML = '<div class="alert alert-danger p-2 small font-mono">Server communication failure.</div>';
+      btnAuth.disabled = false;
+      btnAuth.innerHTML = '<i class="fa-solid fa-expand"></i> Verify Identity';
+    }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    camera.stop();
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Security Breach Lockout &bull; Session Locked{% endblock %}
+
+{% block content %}
+<div class="container lock-screen-container py-5">
+  <div class="lock-card security-breach-pulse text-center">
+    
+    <!-- Lock Icon with Pulsating Red Aura -->
+    <div class="mb-4">
+      <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 90px; height: 90px; background: rgba(239, 68, 68, 0.15); border: 2px solid #ef4444; box-shadow: 0 0 35px rgba(239, 68, 68, 0.5);">
+        <i class="fa-solid fa-lock text-danger display-4"></i>
+      </div>
+    </div>
+
+    <!-- Breach Alert Title -->
+    <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3 border border-danger border-opacity-50" style="background: rgba(239, 68, 68, 0.12);">
+      <span class="pulse-dot pulse-dot-red"></span>
+      <span class="text-danger font-mono small fw-bold">ZERO-TRUST SECURITY BREACH PROTOCOL</span>
+    </div>
+
+    <h2 class="text-light fw-extrabold mb-2 text-gradient-crimson">SESSION LOCKED</h2>
+    
+    <p class="text-secondary mb-4">
+      An unauthorized identity or persistent absence was detected by the Continuous Biometric Sentinel. 
+      Access to this session has been terminated to prevent unauthorized access.
+    </p>
+
+    <!-- Incident Telemetry Card -->
+    <div class="p-3 rounded bg-dark border border-danger border-opacity-30 mb-4 text-start font-mono small">
+      <div class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25">
+        <span class="text-muted">TRIGGER EVENT:</span>
+        <span class="text-danger fw-bold">BIOMETRIC MISMATCH (3/3)</span>
+      </div>
+      <div class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25">
+        <span class="text-muted">TARGET ACCOUNT:</span>
+        <span class="text-light">{{ lock_info.user }}</span>
+      </div>
+      <div class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-25">
+        <span class="text-muted">LOCKOUT TIMESTAMP:</span>
+        <span class="text-warning">{{ lock_info.timestamp }}</span>
+      </div>
+      <div class="d-flex justify-content-between py-1">
+        <span class="text-muted">ACTION TAKEN:</span>
+        <span class="text-danger">SESSION DESTROYED &amp; LOGGED</span>
+      </div>
+    </div>
+
+    <!-- Re-authenticate Action -->
+    <div class="d-flex flex-column gap-2">
+      <a href="{{ url_for('login_page') }}" class="btn btn-cyber-primary py-3 fs-6">
+        <i class="fa-solid fa-fingerprint me-2"></i> Re-Authenticate with Biometrics
+      </a>
+      <a href="{{ url_for('logs_page') }}" class="btn btn-cyber-outline py-2">
+        <i class="fa-solid fa-clock-rotate-left me-2"></i> Inspect Security Incident Logs
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Synthesize breach alarm siren sound
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.type = 'sawtooth';
+      const now = ctx.currentTime;
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.linearRampToValueAtTime(440, now + 0.3);
+      osc.frequency.linearRampToValueAtTime(880, now + 0.6);
+      osc.frequency.linearRampToValueAtTime(440, now + 0.9);
+
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+      osc.start(now);
+      osc.stop(now + 1.2);
+    }
+  } catch (e) {
+    // Audio context may require user gesture on some browsers
+  }
+});
+</script>
+{% endblock %}

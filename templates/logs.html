@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}Security Audit Logs & Telemetry{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  
+  <!-- Header -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+      <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2 border border-info border-opacity-25" style="background: rgba(6, 182, 212, 0.08);">
+        <i class="fa-solid fa-database text-info"></i>
+        <span class="text-info font-mono small fw-semibold">SQLITE BIOMETRIC AUDIT TRAIL</span>
+      </div>
+      <h2 class="fw-bold text-light mb-0">Authentication History &amp; Security Logs</h2>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-cyber-outline btn-sm py-2 px-3" id="btn-refresh-logs">
+        <i class="fa-solid fa-arrows-rotate me-1" id="refresh-icon"></i> Refresh Telemetry
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Metric Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+      <div class="glass-card stat-box">
+        <div class="stat-label">Total Logged Events</div>
+        <div class="stat-value text-info" id="metric-total">{{ metrics.total_logs }}</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="glass-card stat-box">
+        <div class="stat-label">Verified Matches</div>
+        <div class="stat-value text-success" id="metric-auth">{{ metrics.authenticated_count }}</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="glass-card stat-box">
+        <div class="stat-label">Unauthorized Checks</div>
+        <div class="stat-value text-warning" id="metric-unauth">{{ metrics.unauthorized_count }}</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div class="glass-card stat-box">
+        <div class="stat-label">Breach Lockouts</div>
+        <div class="stat-value text-danger" id="metric-locked">{{ metrics.locked_count }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logs Panel -->
+  <div class="glass-card p-4">
+    
+    <!-- Filter and Search Toolbar -->
+    <div class="row g-3 align-items-center mb-3">
+      <div class="col-md-6">
+        <div class="input-group">
+          <span class="input-group-text bg-dark border-secondary border-opacity-25 text-info">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </span>
+          <input type="text" class="form-control font-mono small" id="log-search-input" placeholder="Search by User, Status, or ID...">
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="d-flex flex-wrap gap-1 justify-content-md-end" id="status-filters">
+          <button class="btn btn-sm btn-cyber-primary active-filter" data-filter="ALL">ALL</button>
+          <button class="btn btn-sm btn-cyber-outline" data-filter="AUTHENTICATED">VERIFIED</button>
+          <button class="btn btn-sm btn-cyber-outline" data-filter="UNAUTHORIZED">UNAUTHORIZED</button>
+          <button class="btn btn-sm btn-cyber-outline" data-filter="NO FACE">NO FACE</button>
+          <button class="btn btn-sm btn-cyber-outline" data-filter="SESSION LOCKED">LOCKED</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive">
+      <table class="cyber-table" id="logs-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Timestamp</th>
+            <th>Account / User</th>
+            <th>Status</th>
+            <th>Cosine Similarity</th>
+            <th>Consecutive Failures</th>
+          </tr>
+        </thead>
+        <tbody id="logs-tbody">
+          {% for log in logs %}
+            <tr class="log-row" data-status="{{ log.status }}" data-user="{{ log.username }}" data-id="{{ log.id }}">
+              <td class="font-mono text-muted">#{{ log.id }}</td>
+              <td class="font-mono small text-secondary">{{ log.timestamp }}</td>
+              <td class="font-mono">
+                <i class="fa-regular fa-user text-info me-1"></i>
+                <span class="text-light">{{ log.username }}</span>
+              </td>
+              <td>
+                {% if log.status == 'AUTHENTICATED' %}
+                  <span class="cyber-badge cyber-badge-success py-1 px-2" style="font-size: 0.75rem;">
+                    <span class="pulse-dot pulse-dot-green"></span> AUTHENTICATED
+                  </span>
+                {% elif log.status == 'UNAUTHORIZED' %}
+                  <span class="cyber-badge cyber-badge-danger py-1 px-2" style="font-size: 0.75rem;">
+                    <span class="pulse-dot pulse-dot-red"></span> UNAUTHORIZED
+                  </span>
+                {% elif log.status == 'SESSION LOCKED' %}
+                  <span class="cyber-badge cyber-badge-danger py-1 px-2" style="font-size: 0.75rem;">
+                    <i class="fa-solid fa-lock me-1"></i> SESSION LOCKED
+                  </span>
+                {% elif log.status == 'NO FACE' %}
+                  <span class="cyber-badge cyber-badge-warning py-1 px-2" style="font-size: 0.75rem;">
+                    <span class="pulse-dot pulse-dot-yellow"></span> NO FACE
+                  </span>
+                {% else %}
+                  <span class="cyber-badge cyber-badge-neutral py-1 px-2" style="font-size: 0.75rem;">
+                    {{ log.status }}
+                  </span>
+                {% endif %}
+              </td>
+              <td class="font-mono">
+                <span class="{% if log.similarity >= 0.363 %}text-success fw-bold{% elif log.similarity > 0 %}text-warning{% else %}text-muted{% endif %}">
+                  {{ log.similarity }}
+                </span>
+              </td>
+              <td class="font-mono {% if log.failed_attempts >= 3 %}text-danger fw-bold{% elif log.failed_attempts > 0 %}text-warning{% else %}text-muted{% endif %}">
+                {{ log.failed_attempts }}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty State -->
+    <div class="text-center py-5 d-none" id="empty-state">
+      <i class="fa-solid fa-shield-cat display-4 text-muted mb-3"></i>
+      <h5 class="text-secondary">No matching security records found</h5>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const searchInput = document.getElementById("log-search-input");
+  const filterButtons = document.querySelectorAll("#status-filters button");
+  const rows = document.querySelectorAll(".log-row");
+  const emptyState = document.getElementById("empty-state");
+  const btnRefresh = document.getElementById("btn-refresh-logs");
+  const refreshIcon = document.getElementById("refresh-icon");
+
+  let activeFilter = "ALL";
+
+  function applyFilters() {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const status = row.getAttribute("data-status");
+      const user = (row.getAttribute("data-user") || "").toLowerCase();
+      const id = row.getAttribute("data-id");
+
+      const matchesStatus = (activeFilter === "ALL" || status === activeFilter);
+      const matchesSearch = !searchTerm || user.includes(searchTerm) || status.toLowerCase().includes(searchTerm) || id.includes(searchTerm);
+
+      if (matchesStatus && matchesSearch) {
+        row.style.display = "";
+        visibleCount++;
+      } else {
+        row.style.display = "none";
+      }
+    });
+
+    if (visibleCount === 0) {
+      emptyState.classList.remove("d-none");
+    } else {
+      emptyState.classList.add("d-none");
+    }
+  }
+
+  searchInput.addEventListener("input", applyFilters);
+
+  filterButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      filterButtons.forEach(b => {
+        b.className = "btn btn-sm btn-cyber-outline";
+      });
+      btn.className = "btn btn-sm btn-cyber-primary";
+      activeFilter = btn.getAttribute("data-filter");
+      applyFilters();
+    });
+  });
+
+  // Dynamic Reload via API
+  btnRefresh.addEventListener("click", async () => {
+    refreshIcon.classList.add("fa-spin");
+    try {
+      const response = await fetch("/api/logs?limit=200");
+      const data = await response.json();
+      if (data.success && data.logs) {
+        renderNewLogs(data.logs);
+      }
+    } catch (e) {
+      console.warn("Refresh logs failed:", e);
+    } finally {
+      setTimeout(() => refreshIcon.classList.remove("fa-spin"), 600);
+    }
+  });
+
+  function renderNewLogs(logs) {
+    const tbody = document.getElementById("logs-tbody");
+    tbody.innerHTML = "";
+
+    logs.forEach(log => {
+      const tr = document.createElement("tr");
+      tr.className = "log-row";
+      tr.setAttribute("data-status", log.status);
+      tr.setAttribute("data-user", log.username);
+      tr.setAttribute("data-id", log.id);
+
+      let badgeHtml = "";
+      if (log.status === 'AUTHENTICATED') {
+        badgeHtml = '<span class="cyber-badge cyber-badge-success py-1 px-2" style="font-size: 0.75rem;"><span class="pulse-dot pulse-dot-green"></span> AUTHENTICATED</span>';
+      } else if (log.status === 'UNAUTHORIZED') {
+        badgeHtml = '<span class="cyber-badge cyber-badge-danger py-1 px-2" style="font-size: 0.75rem;"><span class="pulse-dot pulse-dot-red"></span> UNAUTHORIZED</span>';
+      } else if (log.status === 'SESSION LOCKED') {
+        badgeHtml = '<span class="cyber-badge cyber-badge-danger py-1 px-2" style="font-size: 0.75rem;"><i class="fa-solid fa-lock me-1"></i> SESSION LOCKED</span>';
+      } else if (log.status === 'NO FACE') {
+        badgeHtml = '<span class="cyber-badge cyber-badge-warning py-1 px-2" style="font-size: 0.75rem;"><span class="pulse-dot pulse-dot-yellow"></span> NO FACE</span>';
+      } else {
+        badgeHtml = `<span class="cyber-badge cyber-badge-neutral py-1 px-2" style="font-size: 0.75rem;">${log.status}</span>`;
+      }
+
+      const simClass = log.similarity >= 0.363 ? 'text-success fw-bold' : (log.similarity > 0 ? 'text-warning' : 'text-muted');
+      const failClass = log.failed_attempts >= 3 ? 'text-danger fw-bold' : (log.failed_attempts > 0 ? 'text-warning' : 'text-muted');
+
+      tr.innerHTML = `
+        <td class="font-mono text-muted">#${log.id}</td>
+        <td class="font-mono small text-secondary">${log.timestamp}</td>
+        <td class="font-mono"><i class="fa-regular fa-user text-info me-1"></i><span class="text-light">${log.username}</span></td>
+        <td>${badgeHtml}</td>
+        <td class="font-mono"><span class="${simClass}">${log.similarity}</span></td>
+        <td class="font-mono ${failClass}">${log.failed_attempts}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    applyFilters();
+  }
+});
+</script>
+{% endblock %}

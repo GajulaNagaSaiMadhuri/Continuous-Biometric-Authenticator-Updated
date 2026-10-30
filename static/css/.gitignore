@@ -1,0 +1,33 @@
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Sensitive configuration
+.env
+.env.*
+!.env.example
+
+# User biometric data and databases
+authentication.db
+*.db
+data/
+backups/
+*.npy
+
+# IDE files
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

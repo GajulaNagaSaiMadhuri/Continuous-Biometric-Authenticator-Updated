@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Next-Gen Continuous Biometric Authentication{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+
+  <!-- Hero Section -->
+  <div class="row align-items-center g-5 py-4">
+    <div class="col-lg-7">
+      <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3 border border-info border-opacity-25" style="background: rgba(6, 182, 212, 0.08);">
+        <span class="pulse-dot pulse-dot-green"></span>
+        <span class="text-info font-mono small fw-semibold">ACADEMIC CYBERSECURITY PROJECT</span>
+      </div>
+      
+      <h1 class="display-4 fw-extrabold text-light mb-3 lh-sm">
+        Zero-Trust <span class="text-gradient">Continuous Biometric</span> Authenticator
+      </h1>
+      
+      <p class="lead text-secondary mb-4 pe-lg-4">
+        An advanced facial biometric security framework powered by OpenCV's 
+        <strong class="text-info">YuNet</strong> face detector and 
+        <strong class="text-primary">SFace</strong> deep feature representation model. 
+        Continuously verifies authenticated identity in real time and automatically locks 
+        the session when an impostor or user absence is detected.
+      </p>
+
+      <div class="d-flex flex-wrap gap-3">
+        {% if is_authenticated %}
+          <a href="{{ url_for('dashboard_page') }}" class="btn btn-cyber-primary btn-lg">
+            <i class="fa-solid fa-gauge-high"></i> Open Secure Dashboard
+          </a>
+        {% else %}
+          <a href="{{ url_for('login_page') }}" class="btn btn-cyber-primary btn-lg">
+            <i class="fa-solid fa-fingerprint"></i> Biometric Login
+          </a>
+          <a href="{{ url_for('register_page') }}" class="btn btn-cyber-outline btn-lg">
+            <i class="fa-solid fa-user-plus"></i> Enroll New Face
+          </a>
+        {% endif %}
+        <a href="{{ url_for('logs_page') }}" class="btn btn-cyber-outline btn-lg">
+          <i class="fa-solid fa-list-check"></i> Audit History
+        </a>
+      </div>
+    </div>
+
+    <!-- Visual Interactive Card -->
+    <div class="col-lg-5">
+      <div class="glass-card p-4 position-relative overflow-hidden">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="d-flex align-items-center gap-2">
+            <span class="pulse-dot pulse-dot-green"></span>
+            <span class="font-mono small text-info fw-bold">BIOMETRIC SENTINEL ENGINE</span>
+          </div>
+          <span class="badge bg-primary bg-opacity-25 text-info border border-info border-opacity-25 font-mono">
+            THRESHOLD: {{ threshold }}
+          </span>
+        </div>
+
+        <!-- Cyber Holographic Frame -->
+        <div class="rounded-3 p-4 text-center position-relative mb-3" style="background: rgba(2, 6, 23, 0.85); border: 1px dashed rgba(56, 189, 248, 0.3);">
+          <div class="my-4">
+            <i class="fa-solid fa-id-badge text-info display-1 mb-3" style="filter: drop-shadow(0 0 20px rgba(6, 182, 212, 0.4));"></i>
+            <h5 class="text-light fw-bold mb-1">Deep SFace Cosine Matching</h5>
+            <p class="text-muted small mb-0">128-Dimensional Biometric Facial Embedding</p>
+          </div>
+          
+          <div class="progress my-3" style="height: 8px; background: rgba(255,255,255,0.08);">
+            <div class="progress-bar bg-info progress-bar-striped progress-bar-animated" role="progressbar" style="width: 88%;"></div>
+          </div>
+          
+          <div class="d-flex justify-content-between font-mono small text-muted">
+            <span>YuNet Landmark Warping</span>
+            <span class="text-success fw-bold">CONFIDENCE: 98.4%</span>
+          </div>
+        </div>
+
+        <div class="row g-2 text-center font-mono small">
+          <div class="col-6">
+            <div class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+              <span class="text-muted d-block">Max Failure Tolerance</span>
+              <span class="text-danger fw-bold fs-6">{{ max_failures }} Consecutive Checks</span>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="p-2 rounded bg-dark border border-secondary border-opacity-25">
+              <span class="text-muted d-block">Protection Mode</span>
+              <span class="text-success fw-bold fs-6">Active Zero-Trust</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real-Time System Metrics -->
+  <div class="row g-4 my-4">
+    <div class="col-md-3 col-sm-6">
+      <div class="glass-card stat-box">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="stat-label">Registered Accounts</div>
+            <div class="stat-value text-info">{{ metrics.total_users }}</div>
+          </div>
+          <div class="fs-2 text-info opacity-50">
+            <i class="fa-solid fa-users"></i>
+          </div>
+        </div>
+        <div class="small text-muted mt-2">
+          Multi-User Database Enrolled
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+      <div class="glass-card stat-box">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="stat-label">Total Authentications</div>
+            <div class="stat-value text-primary">{{ metrics.total_logs }}</div>
+          </div>
+          <div class="fs-2 text-primary opacity-50">
+            <i class="fa-solid fa-shield-virus"></i>
+          </div>
+        </div>
+        <div class="small text-muted mt-2">
+          Persisted SQLite Verifications
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+      <div class="glass-card stat-box">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="stat-label">Biometric Pass Rate</div>
+            <div class="stat-value text-success">{{ metrics.pass_rate }}%</div>
+          </div>
+          <div class="fs-2 text-success opacity-50">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+        </div>
+        <div class="small text-muted mt-2">
+          Genuine Identity Matches
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+      <div class="glass-card stat-box">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="stat-label">Breaches Blocked</div>
+            <div class="stat-value text-danger">{{ metrics.locked_count }}</div>
+          </div>
+          <div class="fs-2 text-danger opacity-50">
+            <i class="fa-solid fa-lock"></i>
+          </div>
+        </div>
+        <div class="small text-muted mt-2">
+          Lockouts Triggered Automatically
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Architecture Pillars -->
+  <div class="row g-4 my-5">
+    <div class="col-12 text-center mb-2">
+      <h3 class="fw-bold text-light">Core Biometric Defense Pillars</h3>
+      <p class="text-muted">Built upon your existing OpenCV ONNX neural networks</p>
+    </div>
+
+    <div class="col-lg-4 col-md-6">
+      <div class="glass-card p-4 h-100">
+        <div class="d-inline-flex p-3 rounded-3 mb-3 bg-info bg-opacity-10 text-info fs-3">
+          <i class="fa-solid fa-camera"></i>
+        </div>
+        <h5 class="fw-bold text-light">YuNet Real-Time Detection</h5>
+        <p class="text-secondary small">
+          Utilizes the lightweight <code>face_detection_yunet_2023mar.onnx</code> model 
+          to localize faces with 5-point landmark prediction at dynamic camera resolutions.
+        </p>
+      </div>
+    </div>
+
+    <div class="col-lg-4 col-md-6">
+      <div class="glass-card p-4 h-100">
+        <div class="d-inline-flex p-3 rounded-3 mb-3 bg-primary bg-opacity-10 text-primary fs-3">
+          <i class="fa-solid fa-network-wired"></i>
+        </div>
+        <h5 class="fw-bold text-light">SFace 128-D Cosine Matching</h5>
+        <p class="text-secondary small">
+          Applies <code>face_recognition_sface_2021dec.onnx</code> with landmark 
+          perspective alignment and cosine similarity verification against threshold <code>0.363</code>.
+        </p>
+      </div>
+    </div>
+
+    <div class="col-lg-4 col-md-6">
+      <div class="glass-card p-4 h-100">
+        <div class="d-inline-flex p-3 rounded-3 mb-3 bg-danger bg-opacity-10 text-danger fs-3">
+          <i class="fa-solid fa-user-shield"></i>
+        </div>
+        <h5 class="fw-bold text-light">Continuous Impostor Lockout</h5>
+        <p class="text-secondary small">
+          Monitors active authenticated sessions every few seconds. If an impostor appears 
+          or the user steps away for <code>3 consecutive checks</code>, the session locks immediately.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
